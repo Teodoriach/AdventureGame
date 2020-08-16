@@ -1,14 +1,6 @@
 import random as rd
-import sys
-import cmd
-import time
 import loot_list as loot
 import weapons as wp
-
-# TODO:
-#   Loot Table ADD MORE CONTENT
-#   LEVEL UP
-#   EXPERIENCE
 
 
 class Player:
@@ -19,7 +11,7 @@ class Player:
         self.points = 0
         self.name = name
         self.loc = [0, 0]
-        self.eq = {"iron sword": 1}
+        self.eq = {"steel rod": 1}
         self.active_eq = {}
         self.stats = {  # INT only!!!
             "hp": 1,  # health points
@@ -28,7 +20,7 @@ class Player:
             "agility": 1,  # chance to evade, 1 = 1% and so on
             "strength": 1,  # damage and skill checks
             "magic": 0,  # magic
-            "dexterity": 1  # in fight determinates order
+            "dexterity": 1  # in fight determines order
         }
         self.prevloc = self.loc
 
@@ -112,7 +104,6 @@ class Room:
                 "exists": True,
                 "content": loot_table()
              }
-            # TODO: next content
             self.loot = True
             return chest
         else:
@@ -241,68 +232,55 @@ def game():
                             print("You are going {}".format(direction))
                             if direction == "north":
                                 loc = tuple(player.update_loc(1, 0))
-                                if check_room(loc, rooms):
-                                    room = get_room(loc, rooms)
-                                else:
-                                    rooms[loc] = Room("south", loc)
-                                    room = get_room(loc, rooms)
+                                room = check_room(loc, rooms, "south")
                             elif direction == "west":
                                 loc = tuple(player.update_loc(-1, 1))
-                                if check_room(loc, rooms):
-                                    room = get_room(loc, rooms)
-                                else:
-                                    rooms[loc] = Room("east", loc)
-                                    room = get_room(loc, rooms)
+                                room = check_room(loc, rooms, "east")
                             elif direction == "east":
                                 loc = tuple(player.update_loc(1, 1))
-                                if check_room(loc, rooms):
-                                    room = get_room(loc, rooms)
-                                else:
-                                    rooms[loc] = Room("west", loc)
-                                    room = get_room(loc, rooms)
+                                room = check_room(loc, rooms, "west")
                             elif direction == "south":
                                 loc = tuple(player.update_loc(-1, 0))
-                                if check_room(loc, rooms):
-                                    room = get_room(loc, rooms)
-                                else:
-                                    rooms[loc] = Room("north", loc)
-                                    room = get_room(loc, rooms)
+                                room = check_room(loc, rooms, "north")
 
                         else:
                             print("You can't go in there")
                 elif option == "eq" or option == "equipment":
-                    eq_options = ["equip", "stats", "exit"]  # TODO do this
+                    eq_options = ["equip", "stats", "exit"]
                     i = 1
                     for eq in player.get_eq():
                         print("{}. {}".format(i, eq))
                         i += 1
-                    eq_input = input("What do you want to do? ")
-                    if eq_input == "equip":
-                        i = 1
-                        temp_list = []
-                        for eq in player.get_eq():
-                            temp_list = [eq]
-                            print("{}. {}".format(i, eq))
-                            i += 1
-                        eq_input = input("Please pick the eq to equip ")
-                        eq = temp_list[int(eq_input)-1]
-                        player.set_active_eq(eq)
-                        print("You equipped {}".format(eq))
-                        check = wp.return_stat(eq)
-                        stat = get_first_key(check)
-                        player.change_stats(stat, check[stat])
-                    elif eq_input == "stats":
-                        i = 1
-                        temp_list = []
-                        for eq in player.get_eq():
-                            temp_list = [eq]
-                            print("{}. {}".format(i, eq))
-                            i += 1
-                        eq_input = input("Pick a weapon to show its stats: ")
-                        eq = temp_list[int(eq_input)-1]
-                        print(wp.return_stat(eq))
-                    elif eq_input == "exit":
-                        print("You didn't pick anything")
+                    eq_input = input("What do you want to do? ").strip().lower()
+                    if eq_input in eq_options:
+                        if eq_input == "equip":
+                            i = 1
+                            temp_list = []
+                            for eq in player.get_eq():
+                                temp_list = [eq]
+                                print("{}. {}".format(i, eq))
+                                i += 1
+                            eq_input = input("Please pick the eq to equip ")
+                            eq = temp_list[int(eq_input)-1]
+                            player.set_active_eq(eq)
+                            print("You equipped {}".format(eq))
+                            check = wp.return_stat(eq)
+                            for key in check:
+                                player.change_stats(key, check[key])
+                        elif eq_input == "stats":
+                            i = 1
+                            temp_list = []
+                            for eq in player.get_eq():
+                                temp_list = [eq]
+                                print("{}. {}".format(i, eq))
+                                i += 1
+                            eq_input = input("Pick a weapon to show its stats: ")
+                            eq = temp_list[int(eq_input)-1]
+                            print(wp.return_stat(eq))
+                        elif eq_input == "exit":
+                            print("You didn't pick anything")
+                    else:
+                        print("I don't understand")
                 elif option == "stats":
                     print(player.get_stats())
                 elif option == "points" or option == "level":
@@ -353,10 +331,6 @@ def game():
                         else:
                             print("Wrong command")
                             continue
-
-                else:
-                    check = wp.return_stat("iron sword")
-                    print(check)
             else:
                 print("I don't understand")
         else:
@@ -384,6 +358,7 @@ def game():
                             if enemy_hp <= 0:
                                 print("You have defeated your enemy!")
                                 room.set_enemy_exist(False)
+                                room.description_gen()  # update description
                                 player.exp += enemy.givexp
                                 if player.check_experience():
                                     print("Congratulations, you leveled up. Type 'points' to distribute them.")
@@ -427,7 +402,7 @@ def loot_table():  # typ = 0 enemy, typ = 1 chest
     return chosen_item
 
 
-def check_dict_bool(string, dct: dict):
+def check_dict_bool(string, dct: dict):  # check if given key/value exists
     if string in dct:
         return True
     elif string in dct.values():
@@ -443,7 +418,7 @@ def check_dict_return_keyword(string, dct: dict):  # if string is already a key,
         get_key_from_val(string, dct)
 
 
-def check_dict_return_value(string, dct: dict):
+def check_dict_return_value(string, dct: dict):  # return value of given key
     if string in dct:
         return dct[string]
     elif string in dct.values():
@@ -452,7 +427,7 @@ def check_dict_return_value(string, dct: dict):
         return False
 
 
-def get_key_from_val(val, dct):
+def get_key_from_val(val, dct):  # return key with given value
     for key, value in dct.items():
         if val == value:
             return key
@@ -465,15 +440,17 @@ def get_first_key(dct):  # FOR ITEMS, order: STAT, CLASS, RARITY
         return key
 
 
-def check_room(loc, dict):
+def check_room(loc, dict, dir):  # check if room exists
     if loc in dict:
-        return True
+        return get_room(loc, dict)
     else:
-        return False
+        dict[loc] = Room(dir, loc)
+        return get_room(loc, dict)
 
 
-def get_room(loc, dict):
+def get_room(loc, dict):  # return room from given location
     return dict[loc]
+
 
 
 game()
