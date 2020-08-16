@@ -113,7 +113,7 @@ class Room:
             return chest
 
     def description_gen(self):
-        description = "There is "
+        description = "\nThere is "
         if self.loot:
             description += "chest in room. "
         else:
@@ -122,7 +122,8 @@ class Room:
             description += "There is an enemy in room. "
         else:
             description += "There is no enemy in here. "
-        description += "You can only go {}".format(self.dirs)
+        description += "You can only go " + "{}, "*(len(self.dirs)-1) + "and {}."
+        description = description.format(*self.dirs[:-1], self.dirs[-1])
         return description
 
     def check_direction(self, direction):
@@ -276,13 +277,17 @@ def game():
                                 i += 1
                             eq_input = input("Pick a weapon to show its stats: ")
                             eq = temp_list[int(eq_input)-1]
-                            print(wp.return_stat(eq))
+                            wp_stats = wp.return_stat(eq)
+                            for key in wp.return_stat(eq):
+                                print("{} : {}".format(key, wp_stats[key]))
                         elif eq_input == "exit":
                             print("You didn't pick anything")
                     else:
                         print("I don't understand")
                 elif option == "stats":
-                    print(player.get_stats())
+                    pc_stats = player.stats
+                    for key in pc_stats:
+                        print("{} : {}".format(key, pc_stats[key]))
                 elif option == "points" or option == "level":
                     print("You have {} points left".format(player.points))
                     if player.points > 0:
@@ -338,16 +343,19 @@ def game():
             enemy = room.get_enemy()
             enemy_hp = enemy.get_stat("hp")
             player_hp = player.get_stat("hp")
+            first_round = True
+            order = 1
             while room.check_enemy():
-                first_round = True
-                if player.get_stat("dexterity") > enemy.get_stat("dexterity") and first_round:  # who start first
-                    order = 1
-                    first_round = False
-                else:
-                    order = 0
-                    first_round = False
+                if first_round:
+                    if player.get_stat("dexterity") > enemy.get_stat("dexterity"):  # who start first
+                        order = 1
+                        first_round = False
+                    else:
+                        order = 0
+                        first_round = False
                 if order == 1:
-                    print("Your options: {}".format(combat_options))
+                    string = "Your options: " + "{}, "*(len(combat_options)-1) + "and {}."
+                    print(string.format(combat_options[:-1], combat_options[-1]))
                     option = input("What are you doing?").lower().strip()
                     if option in combat_options:
                         if option == "attack":
@@ -376,7 +384,7 @@ def game():
                                 print("You've successfully run away")
                                 player.set_loc_to_prev()
                             else:
-                                print("You couldn't run away")
+                                print("You can't run away")
                                 order = 0
 
                 else:
@@ -390,6 +398,10 @@ def game():
                     else:
                         print("You died.")
                         exit()
+
+
+def clear_output(table):
+    pass
 
 
 def damage_calc(dmg, armr):  # dmg = strength of attacking party, armr = armour of attacked party
@@ -440,17 +452,16 @@ def get_first_key(dct):  # FOR ITEMS, order: STAT, CLASS, RARITY
         return key
 
 
-def check_room(loc, dict, dir):  # check if room exists
-    if loc in dict:
-        return get_room(loc, dict)
+def check_room(loc, dit, direction):  # check if room exists
+    if loc in dit:
+        return get_room(loc, dit)
     else:
-        dict[loc] = Room(dir, loc)
-        return get_room(loc, dict)
+        dit[loc] = Room(direction, loc)
+        return get_room(loc, dit)
 
 
-def get_room(loc, dict):  # return room from given location
-    return dict[loc]
-
+def get_room(loc, dit):  # return room from given location
+    return dit[loc]
 
 
 game()
